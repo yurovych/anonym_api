@@ -19,8 +19,40 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private waitingQueue: Participant[] = [];
 
+  private removeDuplicateSockets(chatId: string, uId: string) {
+    const room = this.server.sockets.adapter.rooms.get(chatId);
+
+    if (room) {
+      room.forEach((socketId) => {
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket?.data?.userId === uId && socket.id !== socketId) {
+          console.log(`Removing duplicate socket ${socket.id} for user ${uId}`);
+          socket.leave(chatId);
+        }
+      });
+    }
+  }
+
+  private isUserInRoom(chatId: string, uId: string): boolean {
+    const room = this.server.sockets.adapter.rooms.get(chatId);
+
+    if (room) {
+      for (const socketId of room) {
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket?.data?.userId === uId) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
+    const { userId } = client.handshake.query;
+    client.data.userId = userId;
   }
 
   async handleDisconnect(client: Socket) {
@@ -60,11 +92,24 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     };
 
     if (chatId) {
-      try {
-        await client.join(chatId);
-        this.notifyRoomSize(chatId);
-      } catch {
-        console.error('Can not join room');
+      const room = this.server.sockets.adapter.rooms.get(chatId);
+      const usersInRoom = room ? room.size : 0;
+
+
+      if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
+        this.removeDuplicateSockets(chatId, uId);
+
+        try {
+          await client.join(chatId);
+          client.data.chatId = chatId
+          this.server.to(chatId).emit('reconnected', { uId });
+          this.notifyRoomSize(chatId);
+        } catch (err) {
+          console.error(`Cannot rejoin room ${chatId}:`, err);
+        }
+      } else {
+        this.waitingQueue.push(currentParticipant);
+        client.emit('waiting-for-match');
       }
     } else {
       this.waitingQueue.push(currentParticipant);
@@ -159,9 +204,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
           (participant) => participant.uId !== uId,
       );
 
-      this.server.to(chatId).emit('chat-left', {
-        uId: uId,
-      });
+      this.server.to(chatId).emit('chat-left', { uId });
+      this.server.to(client.id).emit('chat-left', { uId });
       this.notifyRoomSize(chatId);
     } catch (err) {
       console.error(`Error during leaving the room ${chatId}:`, err);
