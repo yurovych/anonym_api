@@ -21,9 +21,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private removeDuplicateSockets(chatId: string, uId: string) {
     const room = this.server.sockets.adapter.rooms.get(chatId);
-
-    console.log(uId, "uId")
-
     if (room) {
       room.forEach((socketId) => {
         const socket = this.server.sockets.sockets.get(socketId);
@@ -37,7 +34,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private isUserInRoom(chatId: string, uId: string): boolean {
     const room = this.server.sockets.adapter.rooms.get(chatId);
-
     if (room) {
       for (const socketId of room) {
         const socket = this.server.sockets.sockets.get(socketId);
@@ -50,11 +46,9 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     return false;
   }
 
-
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
     const { userId } = client.handshake.query;
-    console.log(userId, "userId-----1111---0000")
     client.data.userId = userId;
   }
 
@@ -97,7 +91,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     if (chatId) {
       const room = this.server.sockets.adapter.rooms.get(chatId);
       const usersInRoom = room ? room.size : 0;
-
 
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
         this.removeDuplicateSockets(chatId, uId);
