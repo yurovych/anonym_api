@@ -54,6 +54,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
     const { userId } = client.handshake.query;
+    console.log(userId, "userId-----1111---0000")
     client.data.userId = userId;
   }
 
