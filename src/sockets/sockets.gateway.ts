@@ -18,7 +18,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @WebSocketServer() server: Server;
 
   private waitingQueue: Participant[] = [];
-  private readonly maxRoomSize = 2;
 
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
@@ -29,7 +28,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.waitingQueue = this.waitingQueue.filter(
         (participant) => participant.socketId !== client.id,
     );
-
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       await client.leave(client.data.chatId as string);
@@ -37,6 +35,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.server.to(client.data.chatId as string).emit('chat-ended', {
         uId: client.id,
       });
+      this.notifyRoomSize(client.data.chatId as string);
+      console.log(this.waitingQueue, 'Q ON DISCONNECT')
     } catch (err) {
       console.error(
           `Error during disconnecting ${client.id}:`,
@@ -60,23 +60,18 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     };
 
     if (chatId) {
-      const room = this.server.sockets.adapter.rooms.get(chatId);
-      const usersInRoom = room ? room.size : 0;
-      if (usersInRoom < this.maxRoomSize) {
-        try {
-          await client.join(chatId);
-          this.notifyRoomSize(chatId);
-        } catch {
-          console.error('Can not join room');
-        }
-      } else {
-        this.waitingQueue.push(currentParticipant);
-        client.emit('waiting-for-match');
+      try {
+        await client.join(chatId);
+        this.notifyRoomSize(chatId);
+      } catch {
+        console.error('Can not join room');
       }
     } else {
       this.waitingQueue.push(currentParticipant);
       client.emit('waiting-for-match');
     }
+
+    console.log(this.waitingQueue, 'Q ON RECONNECT')
   }
 
   @SubscribeMessage('find-chat')
@@ -102,29 +97,21 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
           matchedSocket.data.chatId = chatId;
         }
 
-        const room = this.server.sockets.adapter.rooms.get(chatId);
-        const usersInRoom = room ? room.size : 0;
+        await client.join(chatId);
+        await this.server.sockets.sockets.get(match.socketId)?.join(chatId);
 
-        if (usersInRoom < this.maxRoomSize) {
-          await client.join(chatId);
-          await this.server.sockets.sockets.get(match.socketId)?.join(chatId);
+        this.waitingQueue = this.waitingQueue.filter(
+            (participant) =>
+                participant.uId !== uId && participant.uId !== match.uId,
+        );
 
-          this.waitingQueue = this.waitingQueue.filter(
-              (participant) =>
-                  participant.uId !== uId && participant.uId !== match.uId,
-          );
+        this.server.to(chatId).emit('chat-created', {
+          chatId,
+          seekerId: uId,
+          matchId: match.uId,
+        });
 
-          this.server.to(chatId).emit('chat-created', {
-            chatId,
-            seekerId: uId,
-            matchId: match.uId,
-          });
-
-          this.notifyRoomSize(chatId);
-        } else {
-          this.waitingQueue.push(currentParticipant);
-          client.emit('waiting-for-match');
-        }
+        this.notifyRoomSize(chatId);
       } catch {
         console.error('Can not join room');
       }
@@ -132,6 +119,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.waitingQueue.push(currentParticipant);
       client.emit('waiting-for-match');
     }
+
+    console.log(this.waitingQueue, 'Q ON FIND CHAT')
   }
 
   @SubscribeMessage('send-message')
@@ -170,12 +159,15 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
           (participant) => participant.uId !== uId,
       );
 
-      this.server.to(chatId).emit('chat-ended', {
+      this.server.to(chatId).emit('chat-left', {
         uId: uId,
       });
+      this.notifyRoomSize(chatId);
     } catch (err) {
       console.error(`Error during leaving the room ${chatId}:`, err);
     }
+
+    console.log(this.waitingQueue, 'Q ON FIND LEAVE CHAT')
   }
 
   private notifyRoomSize(chatId: string): void {
