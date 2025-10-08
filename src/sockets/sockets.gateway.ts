@@ -58,13 +58,21 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
         (participant) => participant.socketId !== client.id,
     );
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      await client.leave(client.data.chatId as string);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      this.server.to(client.data.chatId as string).emit('chat-ended', {
-        uId: client.id,
-      });
-      this.notifyRoomSize(client.data.chatId as string);
+      const { chatId, userId } = client.data;
+
+      if (chatId) {
+        if (userId) {
+          this.removeDuplicateSockets(chatId, userId);
+        }
+
+        await client.leave(chatId);
+
+        this.server.to(chatId).emit('chat-ended', {
+          uId: client.id,
+        });
+
+        this.notifyRoomSize(chatId);
+      }
       console.log(this.waitingQueue, 'Q ON DISCONNECT')
     } catch (err) {
       console.error(
