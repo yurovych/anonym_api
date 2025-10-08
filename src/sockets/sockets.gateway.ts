@@ -13,7 +13,10 @@ const allowedOrigins = process.env.NODE_ENV === 'prod'
     ? ['https://enonym.com']
     : ['http://localhost:3000']
 
-@WebSocketGateway({ cors: { origin: allowedOrigins } })
+@WebSocketGateway({ cors: { origin: allowedOrigins },
+  pingInterval: 7000,
+  pingTimeout: 7000,
+})
 export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
