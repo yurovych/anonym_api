@@ -7,8 +7,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import type { IsTyping, Message, Participant } from '../types/generalTypes';
+import * as process from "node:process";
 
-@WebSocketGateway({ cors: { origin: '*' } })
+const allowedOrigins = process.env.NODE_ENV === 'prod'
+    ? ['https://enonym.com']
+    : ['http://localhost:3000']
+
+@WebSocketGateway({ cors: { origin: allowedOrigins } })
 export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
