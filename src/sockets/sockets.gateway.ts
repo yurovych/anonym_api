@@ -45,7 +45,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
         }
       }
     }
-
     return false;
   }
 
@@ -76,7 +75,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
         this.notifyRoomSize(chatId);
       }
-      console.log(this.waitingQueue, 'Q ON DISCONNECT')
     } catch (err) {
       console.error(
           `Error during disconnecting ${client.id}:`,
@@ -90,6 +88,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       client: Socket,
       payload: Omit<Participant, 'socketId'>,
   ) {
+    console.log("THROUGH RECONNECT")
     const { chatId, uId, interlocutorData, userData } = payload;
 
     const currentParticipant: Participant = {
@@ -122,8 +121,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.waitingQueue.push(currentParticipant);
       client.emit('waiting-for-match');
     }
-
-    console.log(this.waitingQueue, 'Q ON RECONNECT')
   }
 
   @SubscribeMessage('find-chat')
@@ -135,6 +132,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       userData,
       interlocutorData,
     };
+
+    console.log("THROUGH FIND CHAT")
 
     const match = this.findMatch(currentParticipant);
 
@@ -171,8 +170,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.waitingQueue.push(currentParticipant);
       client.emit('waiting-for-match');
     }
-
-    console.log(this.waitingQueue, 'Q ON FIND CHAT')
   }
 
   @SubscribeMessage('send-message')
@@ -210,15 +207,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.waitingQueue = this.waitingQueue.filter(
           (participant) => participant.uId !== uId,
       );
-
       this.server.to(chatId).emit('chat-left', { uId });
       this.server.to(client.id).emit('chat-left', { uId });
       this.notifyRoomSize(chatId);
     } catch (err) {
       console.error(`Error during leaving the room ${chatId}:`, err);
     }
-
-    console.log(this.waitingQueue, 'Q ON FIND LEAVE CHAT')
   }
 
   private notifyRoomSize(chatId: string): void {
