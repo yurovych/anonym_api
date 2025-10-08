@@ -22,6 +22,9 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   private removeDuplicateSockets(chatId: string, uId: string) {
     const room = this.server.sockets.adapter.rooms.get(chatId);
 
+    console.log(room, "ROOM")
+    console.log(chatId, "CHAT_ID")
+
     if (room) {
       room.forEach((socketId) => {
         const socket = this.server.sockets.sockets.get(socketId);
