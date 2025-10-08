@@ -21,11 +21,11 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   private readonly maxRoomSize = 2;
 
   handleConnection(client: Socket) {
-    console.log('Client connected:', client.id);
+    console.log(`User ${client.id} CONNECTED`);
   }
 
   async handleDisconnect(client: Socket) {
-    console.log(`Клієнт ${client.id} відключився`);
+    console.log(`User ${client.id} DISCONNECTED`);
     this.waitingQueue = this.waitingQueue.filter(
         (participant) => participant.socketId !== client.id,
     );
@@ -39,7 +39,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
     } catch (err) {
       console.error(
-          `Помилка при обробці відключення клієнта ${client.id}:`,
+          `Error during disconnecting ${client.id}:`,
           err,
       );
     }
@@ -174,7 +174,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
         uId: uId,
       });
     } catch (err) {
-      console.error(`Помилка при виході клієнта з кімнати ${chatId}:`, err);
+      console.error(`Error during leaving the room ${chatId}:`, err);
     }
   }
 
