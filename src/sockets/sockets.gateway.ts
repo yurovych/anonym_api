@@ -6,6 +6,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { OnModuleInit } from '@nestjs/common';
 import type { IsTyping, Message, Participant } from '../types/generalTypes';
 import * as process from "node:process";
 
@@ -13,14 +14,24 @@ const allowedOrigins = process.env.NODE_ENV === 'prod'
     ? ['https://enonym.com']
     : ['http://localhost:3000']
 
-@WebSocketGateway({ cors: { origin: allowedOrigins },
+@WebSocketGateway({
+  cors: { origin: allowedOrigins },
   pingInterval: 10000,
   pingTimeout: 10000,
 })
-export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+{
   @WebSocketServer() server: Server;
 
+  private allUsers: Record<string, boolean> = {}
   private waitingQueue: Participant[] = [];
+
+  async onModuleInit() {
+    setInterval(() => {
+      const stats = this.collectStats();
+      this.server.emit('metrics', stats);
+    }, 10000);
+  }
 
   private async removeDuplicateSockets(chatId: string, uId: string) {
     const room = this.server.sockets.adapter.rooms.get(chatId);
@@ -55,14 +66,35 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     return false;
   }
 
+  private collectStats() {
+    const usersCount = this.server.sockets.sockets.size;
+    const waitingCount = this.waitingQueue.length;
+
+    return {
+      timestamp: new Date(),
+      usersCount,
+      waitingCount,
+    };
+  }
+
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
     const { userId } = client.handshake.query;
     client.data.userId = userId;
+
+    if (userId && typeof userId === 'string') {
+      if (this.allUsers[userId]) {
+        this.server.to(client.id).emit('have-active-chat');
+        client.disconnect();
+      } else {
+        this.allUsers[userId] = true
+      }
+    }
   }
 
   async handleDisconnect(client: Socket) {
     console.log(`User ${client.id} DISCONNECTED`);
+    delete this.allUsers[client.data.userId]
     this.waitingQueue = this.waitingQueue.filter(
         (participant) => participant.socketId !== client.id,
     );
@@ -200,6 +232,11 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       uId: uId,
       isTyping: isTyping,
     });
+  }
+
+  @SubscribeMessage('delete-me-from-list')
+  handleDeleteMeFromList(client: Socket) {
+    delete this.allUsers[client.data.userId]
   }
 
   @SubscribeMessage('leave-chat')
