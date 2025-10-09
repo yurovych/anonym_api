@@ -82,9 +82,11 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     const { userId, isReconnect } = client.handshake.query;
     client.data.userId = userId;
 
+    console.log(userId, 'userId_ON_CONNECT')
+    console.log(isReconnect, 'isReconnect_ON_CONNECT')
+
     if (isReconnect && userId && typeof userId === 'string') {
       this.allUsers[userId] = true
-      return
     } else if (userId && typeof userId === 'string') {
       if (this.allUsers[userId]) {
         this.server.to(client.id).emit('have-active-chat');
@@ -143,6 +145,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       const room = this.server.sockets.adapter.rooms.get(chatId);
       const usersInRoom = room ? room.size : 0;
 
+      console.log(usersInRoom, 'usersInRoom')
+
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
         await this.removeDuplicateSockets(chatId, uId);
 
@@ -173,6 +177,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       userData,
       interlocutorData,
     };
+
+    console.log('IT_IS_FIND_CHART')
 
     const match = this.findMatch(currentParticipant);
 
