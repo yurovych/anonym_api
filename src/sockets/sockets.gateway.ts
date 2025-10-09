@@ -127,7 +127,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       client: Socket,
       payload: Omit<Participant, 'socketId'>,
   ) {
-    console.log("THROUGH RECONNECT")
     const { chatId, uId, interlocutorData, userData } = payload;
 
     const currentParticipant: Participant = {
@@ -171,8 +170,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       userData,
       interlocutorData,
     };
-
-    console.log("THROUGH FIND CHAT")
 
     const match = this.findMatch(currentParticipant);
 
