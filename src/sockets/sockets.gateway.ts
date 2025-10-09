@@ -35,9 +35,15 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   private async removeDuplicateSockets(chatId: string, uId: string) {
     const room = this.server.sockets.adapter.rooms.get(chatId);
+    console.log(room, 'ROOM_11')
     if (room) {
       for (const socketId of room) {
         const socket = this.server.sockets.sockets.get(socketId);
+        console.log(room, 'SOCKET_11')
+        console.log(socket?.data?.userId, 'socket?.data?.userId_11')
+        console.log(uId, 'uId_11')
+        console.log(socket?.id, 'socket?.id_11')
+        console.log(socketId, 'socketId_11')
         if (socket?.data?.userId === uId && socket?.id !== socketId) {
           console.log(`Removing duplicate socket ${socket.id} for user ${uId}`);
           try {
@@ -129,12 +135,13 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       const room = this.server.sockets.adapter.rooms.get(chatId);
       const usersInRoom = room ? room.size : 0;
 
-      console.log(usersInRoom, 'usersInRoom')
+      console.log(usersInRoom, 'usersInRoomBEFORE')
       console.log(this.isUserInRoom(chatId, uId), 'IS_IN ROOM')
 
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
-        console.log('HERE_INSIDE')
         await this.removeDuplicateSockets(chatId, uId);
+
+        console.log(usersInRoom, 'usersInRoomAFTER')
 
         try {
           await client.join(chatId);
