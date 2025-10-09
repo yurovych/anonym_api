@@ -38,12 +38,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     if (room) {
       for (const socketId of room) {
         const socket = this.server.sockets.sockets.get(socketId);
-        if (socket?.data?.userId === uId && socket?.id !== socketId) {
+        if (socket?.data?.userId === uId) {
           console.log(`Removing duplicate socket ${socket.id} for user ${uId}`);
           try {
-            console.log(room, 'ROOM_11')
+            console.log(room, 'ROOM_BEFORE')
             await socket.leave(chatId);
-            console.log(room, 'ROOM_11')
+            console.log(room, 'ROOM_AFTER')
           } catch (error) {
             console.error(
                 `Error while removing duplicate socket ${socket.id} for user ${uId}:`,
@@ -132,7 +132,9 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       const usersInRoom = room ? room.size : 0;
 
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
+        console.log(usersInRoom, 'usersInRoomBEFORE')
         await this.removeDuplicateSockets(chatId, uId);
+        console.log(usersInRoom, 'usersInRoomAFTER')
         try {
           await client.join(chatId);
           client.data.chatId = chatId
