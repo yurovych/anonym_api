@@ -79,15 +79,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
-    const { userId, isReconnect } = client.handshake.query;
+    const { userId } = client.handshake.query;
     client.data.userId = userId;
 
     console.log(userId, 'userId_ON_CONNECT')
-    console.log(isReconnect, 'isReconnect_ON_CONNECT')
 
-    if (isReconnect && userId && typeof userId === 'string') {
-      this.allUsers[userId] = true
-    } else if (userId && typeof userId === 'string') {
+    if (userId && typeof userId === 'string') {
       if (this.allUsers[userId]) {
         this.server.to(client.id).emit('have-active-chat');
         client.disconnect();
@@ -146,8 +143,10 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       const usersInRoom = room ? room.size : 0;
 
       console.log(usersInRoom, 'usersInRoom')
+      console.log(this.isUserInRoom(chatId, uId), 'IS_IN ROOM')
 
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
+        console.log('HERE_INSIDE')
         await this.removeDuplicateSockets(chatId, uId);
 
         try {
