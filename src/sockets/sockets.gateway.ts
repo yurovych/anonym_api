@@ -79,19 +79,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
-    const { userId } = client.handshake.query;
-    client.data.userId = userId;
-
-    console.log(userId, 'userId_ON_CONNECT')
-
-    if (userId && typeof userId === 'string') {
-      if (this.allUsers[userId]) {
-        this.server.to(client.id).emit('have-active-chat');
-        client.disconnect();
-      } else {
-        this.allUsers[userId] = true
-      }
-    }
   }
 
   async handleDisconnect(client: Socket) {
@@ -170,49 +157,55 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   @SubscribeMessage('find-chat')
   async handleFindChat(client: Socket, payload: Omit<Participant, 'socketId'>) {
     const { uId, userData, interlocutorData } = payload;
-    const currentParticipant: Participant = {
-      uId,
-      socketId: client.id,
-      userData,
-      interlocutorData,
-    };
+    client.data.userId = uId;
 
-    console.log('IT_IS_FIND_CHART')
-
-    const match = this.findMatch(currentParticipant);
-
-    if (match) {
-      try {
-        const chatId = this.generateChatId(uId, match.uId);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        client.data.chatId = chatId;
-        const matchedSocket = this.server.sockets.sockets.get(match.socketId);
-        if (matchedSocket) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          matchedSocket.data.chatId = chatId;
-        }
-
-        await client.join(chatId);
-        await this.server.sockets.sockets.get(match.socketId)?.join(chatId);
-
-        this.waitingQueue = this.waitingQueue.filter(
-            (participant) =>
-                participant.uId !== uId && participant.uId !== match.uId,
-        );
-
-        this.server.to(chatId).emit('chat-created', {
-          chatId,
-          seekerId: uId,
-          matchId: match.uId,
-        });
-
-        this.notifyRoomSize(chatId);
-      } catch {
-        console.error('Can not join room');
-      }
+    if (this.allUsers[uId]) {
+      this.server.to(client.id).emit('have-active-chat');
+      client.disconnect();
     } else {
-      this.waitingQueue.push(currentParticipant);
-      client.emit('waiting-for-match');
+      this.allUsers[uId] = true
+
+      const currentParticipant: Participant = {
+        uId,
+        socketId: client.id,
+        userData,
+        interlocutorData,
+      };
+
+      const match = this.findMatch(currentParticipant);
+
+      if (match) {
+        try {
+          const chatId = this.generateChatId(uId, match.uId);
+          client.data.chatId = chatId;
+          const matchedSocket = this.server.sockets.sockets.get(match.socketId);
+          if (matchedSocket) {
+            matchedSocket.data.chatId = chatId;
+          }
+
+          await client.join(chatId);
+          await this.server.sockets.sockets.get(match.socketId)?.join(chatId);
+
+          this.waitingQueue = this.waitingQueue.filter(
+              (participant) =>
+                  participant.uId !== uId && participant.uId !== match.uId,
+          );
+
+          this.server.to(chatId).emit('chat-created', {
+            chatId,
+            seekerId: uId,
+            matchId: match.uId,
+          });
+
+          this.notifyRoomSize(chatId);
+        } catch {
+          console.error('Can not join room');
+        }
+      } else {
+        this.waitingQueue.push(currentParticipant);
+        client.emit('waiting-for-match');
+      }
+
     }
   }
 
