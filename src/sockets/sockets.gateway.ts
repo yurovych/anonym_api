@@ -69,11 +69,13 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   private collectStats() {
     const usersCount = this.server.sockets.sockets.size;
     const waitingCount = this.waitingQueue.length;
+    const allUsers = Object.keys(this.allUsers).length;
 
     return {
       timestamp: new Date(),
       usersCount,
       waitingCount,
+      allUsers
     };
   }
 
