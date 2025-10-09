@@ -79,10 +79,13 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   handleConnection(client: Socket) {
     console.log(`User ${client.id} CONNECTED`);
-    const { userId } = client.handshake.query;
+    const { userId, isReconnect } = client.handshake.query;
     client.data.userId = userId;
 
-    if (userId && typeof userId === 'string') {
+    if (isReconnect && userId && typeof userId === 'string') {
+      this.allUsers[userId] = true
+      return
+    } else if (userId && typeof userId === 'string') {
       if (this.allUsers[userId]) {
         this.server.to(client.id).emit('have-active-chat');
         client.disconnect();
