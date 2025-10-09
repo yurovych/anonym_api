@@ -99,6 +99,10 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
         await client.leave(chatId);
 
+        const room = this.server.sockets.adapter.rooms.get(chatId);
+
+        console.log(room?.size, 'roomSize_009')
+
         this.server.to(chatId).emit('chat-ended', {
           uId: client.id,
         });
