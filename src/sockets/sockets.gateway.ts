@@ -27,6 +27,14 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   private waitingQueue: Participant[] = [];
 
   async onModuleInit() {
+    this.server.on('connection', (client: Socket) => {
+      client.on('disconnect', (reason: string) => {
+        this.server.to(client.data.chatId).emit(
+            'disconnect_reason', { reason: reason, userId: client.handshake.query.userId }
+        );
+      });
+    });
+
     setInterval(() => {
       const stats = this.collectStats();
       this.server.emit('metrics', stats);
@@ -109,15 +117,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
 
         await client.leave(chatId);
-
-        const room = this.server.sockets.adapter.rooms.get(chatId);
-
-        if (room && room.size < 2) {
-          this.server.to(chatId).emit('chat-ended', {
-            uId: client.id,
-          });
-        }
-
         this.notifyRoomSize(chatId);
       }
     } catch (err) {
