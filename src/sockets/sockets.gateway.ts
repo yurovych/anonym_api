@@ -124,6 +124,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   ) {
     const { chatId, uId, interlocutorData, userData } = payload;
 
+    this.allUsers[uId] = true
     const currentParticipant: Participant = {
       uId,
       socketId: client.id,
