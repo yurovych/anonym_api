@@ -172,8 +172,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     const { uId, userData, interlocutorData, leftPrevious } = payload;
     client.data.userId = uId;
 
-    console.log(this.allUsers[uId], 'this.allUsers[uId]')
-    console.log(leftPrevious, 'leftPrevious')
+
+    console.log(uId, 'uId')
 
     if (this.allUsers[uId] && !leftPrevious) {
       this.server.to(client.id).emit('have-active-chat');
