@@ -30,6 +30,17 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     setInterval(() => {
       const stats = this.collectStats();
       this.server.emit('metrics', stats);
+
+      for (const userId in this.allUsers) {
+        const allClients = this.server.sockets.sockets;
+
+        const isUserConnected = Array.from(allClients.values()).some(
+            (socket) => socket.handshake.query.userId === userId
+        );
+        if (!isUserConnected) {
+          delete this.allUsers[userId];
+        }
+      }
     }, 10000);
   }
 
