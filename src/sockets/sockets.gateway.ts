@@ -158,12 +158,13 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   @SubscribeMessage('find-chat')
   async handleFindChat(client: Socket, payload: Omit<Participant, 'socketId'>) {
-    const { uId, userData, interlocutorData } = payload;
+    const { uId, userData, interlocutorData, leftPrevious } = payload;
     client.data.userId = uId;
 
-    if (this.allUsers[uId]) {
+    if (this.allUsers[uId] && !leftPrevious) {
       this.server.to(client.id).emit('have-active-chat');
       client.disconnect();
+      this.allUsers[uId] = true
     } else {
       this.allUsers[uId] = true
 
@@ -186,11 +187,11 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
           }
 
           await client.join(chatId);
-          await this.server.sockets.sockets.get(match.socketId)?.join(chatId);
+          await matchedSocket?.join(chatId);
 
           this.waitingQueue = this.waitingQueue.filter(
-              (participant) =>
-                  participant.uId !== uId && participant.uId !== match.uId,
+              (queueItem) =>
+                  queueItem.uId !== uId && queueItem.uId !== match.uId,
           );
 
           this.server.to(chatId).emit('chat-created', {
@@ -247,9 +248,8 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     const { uId, chatId } = payload;
     try {
       await client.leave(chatId);
-
       this.waitingQueue = this.waitingQueue.filter(
-          (participant) => participant.uId !== uId,
+          (queueItem) => queueItem.uId !== uId,
       );
       this.server.to(chatId).emit('chat-left', { uId });
       this.server.to(client.id).emit('chat-left', { uId });

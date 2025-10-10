@@ -32,4 +32,5 @@ export interface Participant {
     sex: string;
   };
   chatId?: string;
+  leftPrevious?: boolean;
 }
