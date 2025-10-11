@@ -136,12 +136,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     const { chatId, uId, interlocutorData, userData } = payload;
 
     this.allUsers[uId] = true
-    const currentParticipant: Participant = {
-      uId,
-      socketId: client.id,
-      userData,
-      interlocutorData,
-    };
+    // const currentParticipant: Participant = {
+    //   uId,
+    //   socketId: client.id,
+    //   userData,
+    //   interlocutorData,
+    // };
 
     if (chatId) {
       const room = this.server.sockets.adapter.rooms.get(chatId);
@@ -156,7 +156,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         try {
           await client.join(chatId);
           client.data.chatId = chatId
-          client.data.userId = uId
+          // client.data.userId = uId
           this.server.to(chatId).emit('reconnected', { uId });
           this.notifyRoomSize(chatId);
         } catch (err) {
@@ -164,13 +164,15 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
       } else {
         console.log('HERE1')
-        this.waitingQueue.push(currentParticipant);
-        client.emit('waiting-for-match');
+        client.disconnect()
+        // this.waitingQueue.push(currentParticipant);
+        // client.emit('waiting-for-match');
       }
     } else {
       console.log('HERE2')
-      this.waitingQueue.push(currentParticipant);
-      client.emit('waiting-for-match');
+      client.disconnect()
+      // this.waitingQueue.push(currentParticipant);
+      // client.emit('waiting-for-match');
     }
   }
 
