@@ -52,6 +52,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     }, 10000);
   }
 
+  private notifyRoomSize(chatId: string): void {
+    const room = this.server.sockets.adapter.rooms.get(chatId);
+    const usersInRoom = room ? room.size : 0;
+    this.server.to(chatId).emit('room-size', { usersInRoom });
+  }
+
   private async removeDuplicateSockets(chatId: string, uId: string) {
     const room = this.server.sockets.adapter.rooms.get(chatId);
     if (room) {
@@ -211,7 +217,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         this.waitingQueue.push(currentParticipant);
         client.emit('waiting-for-match');
       }
-
     }
   }
 
@@ -262,11 +267,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     }
   }
 
-  private notifyRoomSize(chatId: string): void {
-    const room = this.server.sockets.adapter.rooms.get(chatId);
-    const usersInRoom = room ? room.size : 0;
-    this.server.to(chatId).emit('room-size', { usersInRoom });
-  }
+
 
   private findMatch(currentParticipant: Participant): Participant | null {
     return (
