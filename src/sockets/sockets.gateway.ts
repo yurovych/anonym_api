@@ -6,7 +6,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { OnModuleInit } from '@nestjs/common';
+import { OnModuleInit, OnModuleDestroy} from '@nestjs/common';
 import type { IsTyping, Message, Participant } from '../types/generalTypes';
 import * as process from "node:process";
 
@@ -19,10 +19,10 @@ const allowedOrigins = process.env.NODE_ENV === 'prod'
   pingInterval: 10000,
   pingTimeout: 10000,
 })
-export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit, OnModuleDestroy
 {
   @WebSocketServer() server: Server;
-
+  private intervalId: NodeJS.Timeout;
   private allUsers: Record<string, boolean> = {}
   private waitingQueue: Participant[] = [];
 
@@ -35,7 +35,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       });
     });
 
-    setInterval(() => {
+    this.intervalId = setInterval(() => {
       const stats = this.collectStats();
       this.server.emit('metrics', stats);
 
@@ -50,6 +50,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
       }
     }, 10000);
+  }
+
+  onModuleDestroy() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   private notifyRoomSize(chatId: string): void {
@@ -123,7 +129,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
 
         await client.leave(chatId);
-        // this.notifyRoomSize(chatId);
       }
     } catch (err) {
       console.error(
@@ -223,6 +228,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   @SubscribeMessage('send-message')
   handleMessage(client: Socket, payload: Message) {
     const { chatId, uId, message, createdAt } = payload;
+    this.notifyRoomSize(chatId);
 
     this.server.to(chatId).emit('receive-message', {
       uId: uId,
