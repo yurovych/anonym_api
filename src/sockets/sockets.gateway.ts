@@ -157,10 +157,12 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
           console.error(`Cannot rejoin room ${chatId}:`, err);
         }
       } else {
+        console.log('HERE1')
         this.waitingQueue.push(currentParticipant);
         client.emit('waiting-for-match');
       }
     } else {
+      console.log('HERE2')
       this.waitingQueue.push(currentParticipant);
       client.emit('waiting-for-match');
     }
