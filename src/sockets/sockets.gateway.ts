@@ -129,6 +129,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
 
         await client.leave(chatId);
+        this.notifyRoomSize(chatId);
       }
     } catch (err) {
       console.error(
@@ -228,7 +229,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
   @SubscribeMessage('send-message')
   handleMessage(client: Socket, payload: Message) {
     const { chatId, uId, message, createdAt } = payload;
-    this.notifyRoomSize(chatId);
 
     this.server.to(chatId).emit('receive-message', {
       uId: uId,
@@ -272,8 +272,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       console.error(`Error during leaving the room ${chatId}:`, err);
     }
   }
-
-
 
   private findMatch(currentParticipant: Participant): Participant | null {
     return (
