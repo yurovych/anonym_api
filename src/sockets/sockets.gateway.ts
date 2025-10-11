@@ -156,10 +156,10 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         await this.removeDuplicateSockets(chatId, uId);
         try {
           await client.join(chatId);
+          this.notifyRoomSize(chatId);
           client.data.chatId = chatId
           client.data.userId = uId
           this.server.to(chatId).emit('reconnected', { uId });
-          this.notifyRoomSize(chatId);
         } catch (err) {
           console.error(`Cannot rejoin room ${chatId}:`, err);
         }
