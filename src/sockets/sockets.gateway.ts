@@ -78,6 +78,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
       for (const socketId of room) {
         const socket = this.server.sockets.sockets.get(socketId);
         if (socket?.data?.userId === uId) {
+          console.log(socket?.data?.userId, 'socket?.data?.userId')
           return true;
         }
       }
@@ -145,6 +146,10 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
     if (chatId) {
       const room = this.server.sockets.adapter.rooms.get(chatId);
       const usersInRoom = room ? room.size : 0;
+
+      console.log(room, "ROOM")
+      console.log(uId, "UID")
+      console.log(usersInRoom, "usersInRoom")
 
       if (usersInRoom < 2 || this.isUserInRoom(chatId, uId)) {
         await this.removeDuplicateSockets(chatId, uId);
