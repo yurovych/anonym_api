@@ -32,7 +32,6 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         this.server.to(client.data.chatId).emit(
             'disconnect_reason', { reason: reason, userId: client.handshake.query.userId }
         );
-        this.notifyRoomSize(client.data.chatId);
       });
     });
 
@@ -124,7 +123,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
 
         await client.leave(chatId);
-        this.notifyRoomSize(chatId);
+        // this.notifyRoomSize(chatId);
       }
     } catch (err) {
       console.error(
