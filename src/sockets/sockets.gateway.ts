@@ -32,6 +32,7 @@ export class SocketsGateway implements OnGatewayConnection, OnGatewayDisconnect,
         this.server.to(client.data.chatId).emit(
             'disconnect_reason', { reason: reason, userId: client.handshake.query.userId }
         );
+        this.notifyRoomSize(client.data.chatId);
       });
     });
 
